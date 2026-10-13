@@ -13,18 +13,172 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ProductCategory {
+  BEBAS
+  BEBAS_TERBATAS
+  KERAS
+}
+
+enum PayMethod {
+  CASH
+  QRIS
+  TRANSFER
+}
+
+enum PayStatus {
+  LUNAS
+  PENDING
+}
+
+enum MovementType {
+  IN
+  OUT
+  ADJUST
+}
+
+enum StaffRole {
+  OWNER
+  APOTEKER
+  KASIR
+}
+
 model Product {
-  id         String  @id @default(cuid())
-  userId     String
-  name       String
-  sku        String? @unique
-  price      Decimal @db.Decimal(12, 2)
-  quantity   Int
-  lowStockAt Int?
+  id                   String          @id @default(cuid())
+  userId               String
+  name                 String
+  sku                  String?
+  price                Decimal         @db.Decimal(12, 2)
+  buyPrice             Decimal         @default(0) @db.Decimal(12, 2)
+  quantity             Int
+  lowStockAt           Int?
+  category             ProductCategory @default(BEBAS)
+  requiresPrescription Boolean         @default(false)
+  supplier             String?
+  location             String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  batches   StockBatch[]
+  saleItems SaleItem[]
+  movements StockMovement[]
+
+  @@unique([userId, sku])
   @@index([userId, name])
   @@index([createdAt])
+}
+
+model StockBatch {
+  id        String    @id @default(cuid())
+  userId    String
+  productId String
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  batchNo   String
+  expiredAt DateTime
+  quantity  Int
+  buyPrice  Decimal?  @db.Decimal(12, 2)
+  supplier  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  saleItems SaleItem[]
+  movements StockMovement[]
+
+  @@unique([productId, batchNo])
+  @@index([userId, expiredAt])
+  @@index([productId, expiredAt])
+}
+
+model Sale {
+  id             String    @id @default(cuid())
+  userId         String
+  notaNo         String
+  cashierId      String
+  subtotal       Decimal   @db.Decimal(12, 2)
+  discount       Decimal   @default(0) @db.Decimal(12, 2)
+  tax            Decimal   @default(0) @db.Decimal(12, 2)
+  grandTotal     Decimal   @db.Decimal(12, 2)
+  payMethod      PayMethod
+  payStatus      PayStatus @default(LUNAS)
+  paid           Decimal   @db.Decimal(12, 2)
+  change         Decimal   @default(0) @db.Decimal(12, 2)
+  prescriptionNo String?
+  doctorName     String?
+  isReturned     Boolean   @default(false)
+  returnedReason String?
+  returnedAt     DateTime?
+
+  createdAt DateTime @default(now())
+
+  items     SaleItem[]
+  movements StockMovement[]
+
+  @@unique([userId, notaNo])
+  @@index([userId, createdAt])
+}
+
+model SaleItem {
+  id        String     @id @default(cuid())
+  saleId    String
+  sale      Sale       @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product    @relation(fields: [productId], references: [id])
+  batchId   String
+  batch     StockBatch @relation(fields: [batchId], references: [id])
+  quantity  Int
+  sellPrice Decimal    @db.Decimal(12, 2)
+  buyPrice  Decimal    @db.Decimal(12, 2)
+  subtotal  Decimal    @db.Decimal(12, 2)
+
+  @@index([saleId])
+  @@index([productId])
+}
+
+model StockMovement {
+  id        String       @id @default(cuid())
+  userId    String
+  productId String
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  batchId   String?
+  batch     StockBatch?  @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  type      MovementType
+  qtyChange Int
+  reason    String
+  refSaleId String?
+  refSale   Sale?        @relation(fields: [refSaleId], references: [id], onDelete: SetNull)
+  actorId   String
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, productId, createdAt])
+  @@index([refSaleId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  actorId    String
+  action     String
+  entity     String
+  entityId   String
+  beforeJson Json?
+  afterJson  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, entity, createdAt])
+  @@index([entityId])
+}
+
+model StaffMember {
+  userId      String    @id
+  ownerId     String
+  role        StaffRole @default(KASIR)
+  displayName String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
 }
