@@ -6,7 +6,7 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-gray-50">
       <SideBar currentPath="/settings" />
 
-      <main className="ml-64 p-8">
+      <main className="px-4 pb-4 pt-20 lg:p-8 lg:ml-64">
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
