@@ -1,5 +1,41 @@
 @import "tailwindcss";
 
+/* Saran ukuran kertas struk. Catatan: driver printer + dialog browser
+   yang menentukan hasil akhir — samakan dengan kertas fisik (72mm untuk
+   printer 80mm, 56mm untuk 58mm). */
+@page {
+  size: 72mm auto;
+  margin: 2mm;
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-struk,
+  .print-struk * {
+    visibility: visible;
+  }
+  .print-struk {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 72mm;
+    font-size: 10px;
+    line-height: 1.35;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
 }
